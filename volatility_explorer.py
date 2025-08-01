@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import numpy as np
 import dash
 from dash import dcc, Input, Output, State, callback, no_update
-from dash.html import Div, H2, Hr, Label, Strong, P
+from dash.html import Div, H2, Hr, Label, Strong, P, A, I
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 from plotly.subplots import make_subplots
@@ -34,13 +34,13 @@ def fetch_data(ticker: str, start_date: str, end_date: str):
 
 
 def build_figure(ticker: str, prices, window: int) -> go.Figure:
-    """Precio arriba + 4 σ abajo con eje X compartido."""
+    """Price up + 4 σ down with shared X axis."""
     start_time = time()
 
-    # Retornos diarios
+    # Daily returns
     rets = prices.pct_change().dropna()
 
-    # Desviaciones sobre la ventana móvil
+    # Standard Deviation over window
     window_std = rets.rolling(window).std()
     window_std_pos = rets.rolling(window).apply(
         lambda x: x[x > 0].std() if len(x[x > 0]) else np.nan
@@ -49,7 +49,7 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
         lambda x: x[x < 0].std() if len(x[x < 0]) else np.nan
     )
 
-    # Desviaciones acumuladas
+    # Acumulated standard deviation
     acum_std = rets.expanding().std()
     acum_std_pos = rets.expanding().apply(
         lambda x: x[x > 0].std() if len(x[x > 0]) else np.nan
@@ -58,12 +58,12 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
         lambda x: x[x < 0].std() if len(x[x < 0]) else np.nan
     )
 
-    # Desviaciones globales
+    # Global standard deviation
     global_std = rets.std()
     global_std_pos = rets[rets > 0].std()
     global_std_neg = rets[rets < 0].std()
 
-    # IQR sobre ventana movil
+    # IQR on window
     window_iqr = rets.rolling(window).quantile(0.75) - rets.rolling(window).quantile(
         0.25
     )
@@ -82,7 +82,7 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
         )
     )
 
-    # IQR acumuladas
+    # Acumulated IQR
     acum_iqr_all = rets.expanding().quantile(0.75) - rets.expanding().quantile(0.25)
     acum_iqr_pos = rets.expanding().apply(
         lambda x: (
@@ -99,12 +99,12 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
         )
     )
 
-    # IQR Globales
+    # Global IQR
     global_iqr = rets.quantile(0.75) - rets.quantile(0.25)
     global_iqr_pos = rets[rets > 0].quantile(0.75) - rets[rets > 0].quantile(0.25)
     global_iqr_neg = rets[rets < 0].quantile(0.75) - rets[rets < 0].quantile(0.25)
 
-    # DataFrame único para compartir eje
+    # Single DataFrame to share axis
     df = pd.DataFrame(
         {
             "date": prices[1:].index,
@@ -131,7 +131,7 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
         }
     )
 
-    # Sub-plots con eje X compartido
+    # Subplots with shared X axis
     fig = make_subplots(
         rows=4,
         cols=1,
@@ -146,7 +146,7 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
         row_heights=[0.4, 0.4, 0.4, 0.4],
     )
 
-    # Precio
+    # Price
     fig.add_trace(
         go.Scatter(
             x=df["date"],
@@ -160,7 +160,7 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
         col=1,
     )
 
-    # Retornos
+    # Returns
     fig.add_trace(
         go.Scatter(
             x=df["date"],
@@ -174,7 +174,7 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
         col=1,
     )
 
-    # Desviaciones
+    # Standard Deviation
     fig.add_trace(
         go.Scatter(
             x=df["date"],
@@ -274,6 +274,7 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
         row=3,
         col=1,
     )
+
     # IQR
     fig.add_trace(
         go.Scatter(
@@ -399,7 +400,13 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
 
 
 # ---------- Dash ----------
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[
+        dbc.themes.BOOTSTRAP,
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css",
+    ],
+)
 app.title = "Volatility Explorer"
 
 app.layout = dbc.Container(
@@ -441,7 +448,23 @@ app.layout = dbc.Container(
                                     className="text-light mt-3",
                                 ),
                                 P(
-                                    " Se recomienda no seleccionar mas de 1 año debido a las limitaciones de la capa gratuita de Render.",
+                                    "Se recomienda no seleccionar mas de 1 año debido a las limitaciones de la capa gratuita de Render.",
+                                    className="text-light mt-3",
+                                ),
+                                Div(
+                                    [
+                                        "Dejo un link al repositorio para que puedas probarlo en local sin limitaciones: ",
+                                        A(
+                                            I(className="fab fa-github fs-4 mx-3"),
+                                            " Volatility Explorer",
+                                            href="https://github.com/davichuder/volatility_explorer",
+                                            target="_blank",
+                                            className="text-light",
+                                            style={
+                                                "text-decoration": "none",
+                                            },
+                                        ),
+                                    ],
                                     className="text-light mt-3",
                                 ),
                             ]
@@ -652,7 +675,7 @@ app.layout = dbc.Container(
 )
 
 
-# Callback para mostrar/ocultar la información
+# Callback to show/hide information
 @callback(
     Output("info-collapse", "is_open"),
     [Input("info-button", "n_clicks")],
@@ -665,7 +688,7 @@ def toggle_info_collapse(n, is_open):
     return is_open
 
 
-# Callback para actualizar los datos
+# Callback to update the last data
 @callback(
     Output("last_data", "data"),
     Output("prices", "data"),
@@ -678,7 +701,7 @@ def toggle_info_collapse(n, is_open):
     State("date-picker", "end_date"),
 )
 def update_last_data(n, last_data, ticker, start_date, end_date):
-    """Actualiza los valores de los últimos inputs."""
+    """Update the last data."""
     if not n:
         raise PreventUpdate
 
@@ -710,8 +733,8 @@ def update_last_data(n, last_data, ticker, start_date, end_date):
 
     if updated_prices is None:
         return (
-            updated_last_data,  # Actualizamos el last_data para evitar intentos repetidos
-            None,  # Establecemos prices a None para indicar que falló la carga
+            updated_last_data,
+            None,
             "Error al cargar datos. El ticker no es válido o no hay datos disponibles.",
             True,
         )
@@ -728,7 +751,7 @@ def update_last_data(n, last_data, ticker, start_date, end_date):
     )
 
 
-# Callback para actualizar el gráfico
+# Callback to update the graph
 @callback(
     Output("last_window", "data"),
     Output("loading-graph", "figure"),
@@ -742,11 +765,10 @@ def update_last_data(n, last_data, ticker, start_date, end_date):
     State("last_ticker_calculate", "data"),
 )
 def update_graph(n, window, last_data, prices, last_window, last_ticker_calculate):
-    """Actualiza el gráfico con los datos de precios y la ventana."""
+    """Updates the chart with price data and the window."""
     if not n or not last_data or not prices:
         raise PreventUpdate
 
-    # Validar y convertir la ventana a un entero para evitar el error de tipo
     if not window or not isinstance(window, (int, float)) or int(window) < 1:
         return (
             no_update,
