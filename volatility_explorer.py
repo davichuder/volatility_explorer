@@ -665,9 +665,8 @@ app.layout = dbc.Container(
             ),
         ),
         dcc.Store(id="last_data", storage_type="memory"),
-        dcc.Store(id="last_window", storage_type="memory"),
+        dcc.Store(id="last_graph_params", storage_type="memory"),
         dcc.Store(id="prices", storage_type="memory"),
-        dcc.Store(id="last_ticker_calculate", storage_type="memory"),
     ],
     fluid=True,
     className="bg-dark text-light",
@@ -753,18 +752,16 @@ def update_last_data(n, last_data, ticker, start_date, end_date):
 
 # Callback to update the graph
 @callback(
-    Output("last_window", "data"),
+    Output("last_graph_params", "data"),
     Output("loading-graph", "figure"),
     Output("loading-calculate", "children"),
-    Output("last_ticker_calculate", "data"),
     Input("calculate", "n_clicks"),
     State("window", "value"),
     State("last_data", "data"),
     State("prices", "data"),
-    State("last_window", "data"),
-    State("last_ticker_calculate", "data"),
+    State("last_graph_params", "data"),
 )
-def update_graph(n, window, last_data, prices, last_window, last_ticker_calculate):
+def update_graph(n, window, last_data, prices, last_graph_params):
     """Updates the chart with price data and the window."""
     if not n or not last_data or not prices:
         raise PreventUpdate
@@ -774,10 +771,23 @@ def update_graph(n, window, last_data, prices, last_window, last_ticker_calculat
             no_update,
             no_update,
             "Error: Por favor, introduce un número entero válido (mínimo 1) para la ventana.",
-            no_update,
         )
 
     window_int = int(window)
+    title = f"Ticker: {last_data['ticker']}, Fecha de Inicio: {last_data['start_date']}, Fecha de Fin: {last_data['end_date']}. Ventana: {window_int}."
+
+    if (
+        last_graph_params
+        and last_graph_params.get("window") == window
+        and last_graph_params.get("ticker") == last_data["ticker"]
+        and last_graph_params.get("start_date") == last_data["start_date"]
+        and last_graph_params.get("end_date") == last_data["end_date"]
+    ):
+        return (
+            no_update,
+            no_update,
+            f"El gráfico ya está actualizado.\n{title}",
+        )
 
     df_prices = pd.Series(
         prices["values"],
@@ -785,33 +795,19 @@ def update_graph(n, window, last_data, prices, last_window, last_ticker_calculat
         dtype=float,
     )
 
-    if window_int > len(df_prices):
-        return (
-            no_update,
-            no_update,
-            f"Error: La ventana móvil ({window_int} días) no puede ser más grande que el número de días cargados ({len(df_prices)}).",
-            no_update,
-        )
-
-    title = f"Ticker: {last_data['ticker']}, Fecha de Inicio: {last_data['start_date']}, Fecha de Fin: {last_data['end_date']}. Ventana: {window_int}."
-
-    if window_int == last_window and last_ticker_calculate == last_data["ticker"]:
-        return (
-            no_update,
-            no_update,
-            f"El gráfico ya está actualizado.\n{title}",
-            no_update,
-        )
-
     return (
-        window_int,
+        {
+            "window": window_int,
+            "ticker": last_data["ticker"],
+            "start_date": last_data["start_date"],
+            "end_date": last_data["end_date"],
+        },
         build_figure(
             last_data["ticker"],
             df_prices,
             window_int,
         ),
         f"Gráfico actualizado con éxito.\n{title}",
-        last_data["ticker"],
     )
 
 
