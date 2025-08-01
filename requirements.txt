@@ -4,3 +4,4 @@ numpy==2.2.6
 pandas==2.3.1
 plotly==6.2.0
 yfinance==0.2.65
+gunicorn==23.0.0

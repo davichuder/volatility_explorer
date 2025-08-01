@@ -1,1 +1,1 @@
-web: python volatility_explorer.py
+web: gunicorn volatility_explorer:server --bind 0.0.0.0:$PORT

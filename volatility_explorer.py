@@ -816,5 +816,4 @@ def update_graph(n, window, last_data, prices, last_window, last_ticker_calculat
     )
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+server = app.server
