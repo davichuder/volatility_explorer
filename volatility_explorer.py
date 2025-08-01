@@ -20,7 +20,7 @@ from plotly.subplots import make_subplots
 DEFAULT_WINDOW = 21
 DEFAULT_TICKER = "SPY"
 DEFAULT_END_DATE = datetime.now()
-DEFAULT_START_DATE = DEFAULT_END_DATE - timedelta(days=365 * 10)
+DEFAULT_START_DATE = DEFAULT_END_DATE - timedelta(days=365)
 
 
 def fetch_data(ticker: str, start_date: str, end_date: str):
@@ -394,13 +394,6 @@ def build_figure(ticker: str, prices, window: int) -> go.Figure:
         col=1,
     )
 
-    # fig.update_layout(
-    #     height=1000,
-    #     title_text=f"Explorador de Volatilidad – {ticker} - Tiempo de cálculo: {time() - start_time:.2f} segundos",
-    #     template="plotly_dark",
-    #     legend_tracegroupgap=250,
-    # )
-
     fig.update_layout(
         height=1000,
         title_text=f"Explorador de Volatilidad – {ticker} - Tiempo de cálculo: {time() - start_time:.2f} segundos",
@@ -465,6 +458,10 @@ app.layout = dbc.Container(
                                 ),
                                 P(
                                     "Puedes ajustar la ventana de tiempo y el rango de fechas para ver cómo cambia la volatilidad.",
+                                    className="text-light mt-3",
+                                ),
+                                P(
+                                    " Se recomienda no seleccionar mas de 1 año debido a las limitaciones de la capa gratuida de Render.",
                                     className="text-light mt-3",
                                 ),
                             ]
