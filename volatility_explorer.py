@@ -664,6 +664,20 @@ app.layout = dbc.Container(
                 )
             ),
         ),
+        dbc.Toast(
+            id="error-toast",
+            header="Error de cálculo",
+            is_open=False,
+            dismissable=True,
+            icon="danger",
+            duration=5000,
+            style={
+                "position": "fixed",
+                "top": "1rem",
+                "right": "1rem",
+                "width": "350px",
+            },
+        ),
         dcc.Store(id="last_data", storage_type="memory"),
         dcc.Store(id="last_graph_params", storage_type="memory"),
         dcc.Store(id="prices", storage_type="memory"),
@@ -755,6 +769,8 @@ def update_last_data(n, last_data, ticker, start_date, end_date):
     Output("last_graph_params", "data"),
     Output("loading-graph", "figure"),
     Output("loading-calculate", "children"),
+    Output("error-toast", "is_open"),
+    Output("error-toast", "children"),
     Input("calculate", "n_clicks"),
     State("window", "value"),
     State("last_data", "data"),
@@ -771,6 +787,8 @@ def update_graph(n, window, last_data, prices, last_graph_params):
             no_update,
             no_update,
             "Error: Por favor, introduce un número entero válido (mínimo 1) para la ventana.",
+            False,
+            no_update,
         )
 
     window_int = int(window)
@@ -787,6 +805,8 @@ def update_graph(n, window, last_data, prices, last_graph_params):
             no_update,
             no_update,
             f"El gráfico ya está actualizado.\n{title}",
+            False,
+            no_update,
         )
 
     df_prices = pd.Series(
@@ -795,20 +815,32 @@ def update_graph(n, window, last_data, prices, last_graph_params):
         dtype=float,
     )
 
-    return (
-        {
-            "window": window_int,
-            "ticker": last_data["ticker"],
-            "start_date": last_data["start_date"],
-            "end_date": last_data["end_date"],
-        },
-        build_figure(
-            last_data["ticker"],
-            df_prices,
-            window_int,
-        ),
-        f"Gráfico actualizado con éxito.\n{title}",
-    )
+    try:
+        return (
+            {
+                "window": window_int,
+                "ticker": last_data["ticker"],
+                "start_date": last_data["start_date"],
+                "end_date": last_data["end_date"],
+            },
+            build_figure(
+                last_data["ticker"],
+                df_prices,
+                window_int,
+            ),
+            f"Gráfico actualizado con éxito.\n{title}",
+            False,
+            no_update,
+        )
+    except Exception as e:
+        error_message = f"Ocurrió un error inesperado durante el cálculo: {e}. Esto podría ser debido a limitaciones de la capa gratuita de Render. Por favor, intenta con un rango de fechas más corto."
+        return (
+            no_update,
+            no_update,
+            f"Error: {error_message}",
+            True,
+            error_message,
+        )
 
 
 server = app.server
