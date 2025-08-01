@@ -461,7 +461,7 @@ app.layout = dbc.Container(
                                     className="text-light mt-3",
                                 ),
                                 P(
-                                    " Se recomienda no seleccionar mas de 1 año debido a las limitaciones de la capa gratuida de Render.",
+                                    " Se recomienda no seleccionar mas de 1 año debido a las limitaciones de la capa gratuita de Render.",
                                     className="text-light mt-3",
                                 ),
                             ]
